@@ -1,4 +1,8 @@
 //This is a script to create snapshots of EC2 instances on AWS where instances have the following tag:  Backup: yes
+//Set this up in AWS Lambda as:   
+//Runtime: Node.js 4.3
+//Handler: index.handler
+//Existing Role: ebs-lambda-worker that has full access on EC2
 
 var aws = require('aws-sdk');  
 aws.config.region = 'eu-west-1';  
