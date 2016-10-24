@@ -1,0 +1,59 @@
+//This is a script to create snapshots of EC2 instances on AWS where instances have the following tag:  Backup: yes
+
+var aws = require('aws-sdk');  
+aws.config.region = 'eu-west-1';  
+var ec2 = new aws.EC2();  
+var now = new Date();  
+date = now.toISOString().substring(0, 10)  
+hours = now.getHours()  
+minutes = now.getMinutes()  
+exports.handler = function(event, context) {  
+    var instanceparams = {
+        Filters: [{
+            Name: 'tag:Backup',
+            Values: [
+                'yes'
+            ]
+        }]
+    }
+    ec2.describeInstances(instanceparams, function(err, data) {
+        if (err) console.log(err, err.stack);
+        else {
+            for (var i in data.Reservations) {
+                for (var j in data.Reservations[i].Instances) {
+                    instanceid = data.Reservations[i].Instances[j].InstanceId;
+                    nametag = data.Reservations[i].Instances[j].Tags
+                    for (var k in data.Reservations[i].Instances[j].Tags) {
+                        if (data.Reservations[i].Instances[j].Tags[k].Key == 'Name') {
+                            name = data.Reservations[i].Instances[j].Tags[k].Value;
+                        }
+                    }
+                    console.log("Creating AMIs of the Instance: ", name);
+                    var imageparams = {
+                        InstanceId: instanceid,
+                        Name: name + "_" + date + "_" + hours + "h-" + minutes + "m",
+                        NoReboot: true
+                    }
+                    ec2.createImage(imageparams, function(err, data) {
+                        if (err) console.log(err, err.stack);
+                        else {
+                            image = data.ImageId;
+                            console.log(image);
+                            var tagparams = {
+                                Resources: [image],
+                                Tags: [{
+                                    Key: 'DeleteOn',
+                                    Value: 'yes'
+                                }]
+                            };
+                            ec2.createTags(tagparams, function(err, data) {
+                                if (err) console.log(err, err.stack);
+                                else console.log("Tags added to the created AMIs");
+                            });
+                        }
+                    });
+                }
+            }
+        }
+    });
+}
