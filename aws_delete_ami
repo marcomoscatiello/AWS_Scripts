@@ -1,4 +1,9 @@
 //Script to delete AMIs in AWS that are older than 7 days from the current one.
+//Set this up in AWS Lambda as:   
+//Runtime: Node.js 4.3
+//Handler: index.handler
+//Existing Role: ebs-lambda-worker that has full access on EC2
+
 var aws = require('aws-sdk');  
 aws.config.region = 'eu-west-1';  
 var ec2 = new aws.EC2();  
