@@ -1,0 +1,1 @@
+aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Name`].Value][0][0],State.Name,PrivateIpAddress,PublicIpAddress]' --output table | grep -i $1
