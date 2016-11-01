@@ -2,4 +2,4 @@
 aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Name`].Value][0][0],State.Name,PrivateIpAddress,PublicIpAddress]' --output table | grep -i $1
 
 #this put in output the instance name, private ip, public ip, key-name
-#aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Name`].Value][0][0],State.Name,PrivateIpAddress,PublicIpAddress,KeyName]'  --output table
+#aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Name`].Value][0][0],State.Name,PrivateIpAddress,PublicIpAddress,KeyName]'  --output table | grep -i $1
