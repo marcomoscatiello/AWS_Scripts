@@ -3,3 +3,6 @@ aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Nam
 
 #this put in output the instance name, private ip, public ip, key-name
 #aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Name`].Value][0][0],State.Name,PrivateIpAddress,PublicIpAddress,KeyName]'  --output table | grep -i $1
+
+#prints in a file the result of a search, sending in output the list of instance-id for the production machines
+#aws ec2 describe-instances --query 'Reservations[].Instances[].[[Tags[?Key==`Name`].Value][0][0],State.Name,InstanceId,PrivateIpAddress,PublicIpAddress,KeyName]'  --output table | grep -i prod | awk -F '|' '{print $4}' | sed 's/ //g' >> prod-ec2-to-backup.txt
