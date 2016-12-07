@@ -1,7 +1,3 @@
-
-
-
-#LAST VERSION
 # This script will search for all instances having a tag with "Backup" or "backup"
 # on it. As soon as we have the instances list, we loop through each instance
 # and create an AMI of it. Also, it will look for a "Retention" tag key which
@@ -27,7 +23,7 @@ def lambda_handler(event, context):
         'Reservations', []
     )
 
-    print reservations
+    #print reservations
     
     instances = sum(
         [
@@ -49,20 +45,18 @@ def lambda_handler(event, context):
         except IndexError:
             retention_days = 7
         finally:
-            for i in instances:
-                print "UNO: %s ", i
+            print instances[1]
             #prints the first dictionary of the dictionary Tag instance that keeps the name of the instance
             #for i in instances: 
-                
-                print "INSTANCE: %s" , instance['Tags'][0]
+            print "INSTANCE: %s" , instance['Tags'][0]
             #create a dictionary "name" from dictionary "instance" 
-                name = instance['Tags'][0]
+            name = instance['Tags'][0]
             #if the value "Name" exists in the tag
-                if 'Name' in name.values():
-                    print "COOL"
+            if 'Name' in name.values():
+                print "COOL"
                 #assign to tag_name the name of the instance
-                    tag_name = name['Value']
-                    print "Tag_name: %s" %tag_name
+                tag_name = name['Value']
+                print "Tag_name: %s" %tag_name
             #print name
             
                 
