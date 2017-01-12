@@ -35,8 +35,12 @@ def lambda_handler(event, context):
         except IndexError:
             # Please give your retention period day
             retention_days = 7
+        #Added by marco to look at the instance structure
+        print instance
 
         for dev in instance['BlockDeviceMappings']:
+            print "dev"
+            print dev
             if dev.get('Ebs', None) is None:
                 continue
             vol_id = dev['Ebs']['VolumeId']
@@ -52,7 +56,7 @@ def lambda_handler(event, context):
                     print "Found EBS volume %s on instance %s" % (
                     vol_id, instance['InstanceId'])
 
-            #To get all the instance tags deatils
+            #To get all the instance tags details
             for name in instance['Tags']:
                 # To store the instance tag value
                 Instancename= name['Value']
@@ -62,14 +66,18 @@ def lambda_handler(event, context):
                 if key == 'Name' :
                     snap = ec.create_snapshot(
                     VolumeId=vol_id,
-                    Description=Instancename,
+                    #Added by Marco
+                    #This assign in the description field of the EBS snapshot the volumeID
+                    Description=vol_id    
+                    #Description=Instancename,
                     )
                     print "snap %s" %snap
                     print "volumeId: %s" %vol_id   #Added by Marco  
                     
 
             to_tag[retention_days].append(snap['SnapshotId'])
-
+            #Added by Marco
+            print to_tag
             print "Retaining snapshot %s of volume %s from instance %s for %d days" % (
                 snap['SnapshotId'],
                 vol_id,
@@ -80,8 +88,9 @@ def lambda_handler(event, context):
             for retention_days in to_tag.keys():
                 delete_date = datetime.date.today() + datetime.timedelta(days=retention_days)
                 #Added by Marco
-                snap = vol_id + str('_')       
-                #snap = snap['VolumeId'] + str('_')       #This give the VolumeId name to the ebs snapshot (but not for 2 ebs in same ec2)
+                #snap = vol_id + str('_')   
+                #This give the VolumeId name to the ebs snapshot (but not for 2 ebs in same ec2)
+                snap = snap['VolumeId'] + str('_')       
                 #snap = snap['Description'] + str('_')   #This give the instance name to the ebs snapshot
                 # Here to get current date 
                 snapshot = snap + str(datetime.date.today())   
