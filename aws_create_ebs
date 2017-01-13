@@ -1,4 +1,4 @@
-#This script takes a snapshot of all volumes of the ec2 instances that have a tag set as: Backup -> True . 
+#This script takes a snapshot of all volumes of the ec2 instances that have a tag set as: Backup -> True . Each instance also needs to have the Tag Name.
 import boto3  
 import collections  
 import datetime
@@ -69,7 +69,7 @@ def lambda_handler(event, context):
                 if key == 'Name' :
                     #create the snapshot using as parameters the VolumeID and the Description field.
                     snap = ec.create_snapshot(
-                    VolumeId=vol_id
+                    VolumeId=vol_id,
                     #This assign in the description field of the EBS snapshot the volumeID.
                     Description=vol_id
                     #If you want to assign the Instance Name to the Description field of the snapshot, comment the next line and uncomment the one after.   
@@ -108,14 +108,14 @@ def lambda_handler(event, context):
                 vol_id,
                 instance['InstanceId'],
                 retention_days,
-
             )
+            
             for retention_days in to_tag2.keys():
                 delete_date = datetime.date.today() + datetime.timedelta(days=retention_days)
                
                 #snap = vol_id + str('_')   
                 #Commented as old configuration
-                #snap = snap['VolumeId'] + str('_')       
+                snap = snap['VolumeId'] + str('_')       
                 #snap = snap['Description'] + str('_')   #This give the instance name to the ebs snapshot
                 # Here to get current date 
                 snapshot = snap + str(datetime.date.today())   
@@ -133,5 +133,3 @@ def lambda_handler(event, context):
                 ) 
         to_tag1.clear()
         to_tag2.clear()
-        
-        
