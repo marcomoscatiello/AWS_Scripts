@@ -1,0 +1,26 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::461925806029:root"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "StringEquals": {
+          "aws:username": [
+            "marco.moscatiello",
+            "koe.pena",
+            "gavin.heavyside"
+          ]
+        },
+        "Bool": {
+          "aws:MultiFactorAuthPresent": "true",
+          "aws:SecureTransport": "true"
+        }
+      }
+    }
+  ]
+}
