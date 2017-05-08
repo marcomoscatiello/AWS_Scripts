@@ -1,0 +1,135 @@
+#This script takes a snapshot of all volumes of the ec2 instances that have a tag set as: Backup -> True . Each instance also needs to have the Tag Name.
+import boto3  
+import collections  
+import datetime
+
+#Please mention your region name
+#below line code is call cross region
+ec = boto3.client('ec2', region_name='eu-west-1')
+
+#begins lambda function
+def lambda_handler(event, context):  
+    # mention your tag values below example "Backup-snap"
+    reservations = ec.describe_instances(
+        Filters=[
+            {'Name': 'tag-key', 'Values': ['Backup', 'True']},
+        ]
+    ).get(
+        'Reservations', []
+    )
+
+    instances = sum(
+        [
+            [i for i in r['Instances']]
+            for r in reservations
+        ], [])
+
+    print "Number of the Instances : %d" % len(instances)
+    
+    #Initialise the list in order to create the tag for the volume snapshots.
+    to_tag1 = collections.defaultdict(list)
+    to_tag2 = collections.defaultdict(list)
+
+    for instance in instances:
+        try:
+            retention_days = [
+                int(t.get('Value')) for t in instance['Tags']
+                if t['Key'] == 'Retention'][0]
+        except IndexError:
+            # Please give your retention period day
+            retention_days = 7
+        #Added by marco to look at the instance structure
+        print instance
+
+        for dev in instance['BlockDeviceMappings']:
+            print "dev"
+            print dev
+            if dev.get('Ebs', None) is None:
+                continue
+            vol_id = dev['Ebs']['VolumeId']
+
+            for name in instance['Tags']:
+                # To store the instance tag value
+                Instancename= name['Value']
+                # To store the instance key value
+                key= name['Key']
+                # Below the code is create Snapshot name as instance Name 
+                if key == 'Name' :
+                    ins_name = Instancename
+                    print "Found EBS volume %s on instance %s" % (
+                    vol_id, instance['InstanceId'])
+
+            #To get all the instance tags details
+            for name in instance['Tags']:
+                # To store the instance tag value
+                Instancename= name['Value']
+                # To store the instance key value
+                key= name['Key']
+                # Below the code is create Snapshot name as instance Name 
+                if key == 'Name' :
+                    #create the snapshot using as parameters the VolumeID and the Description field.
+                    snap = ec.create_snapshot(
+                    VolumeId=vol_id,
+                    #This assign in the description field of the EBS snapshot the volumeID.
+                    Description=vol_id
+                    #If you want to assign the Instance Name to the Description field of the snapshot, comment the next line and uncomment the one after.   
+                    #Description=Instancename
+                    )
+                    #Prints the current snaphot data structure - useful to understand how AWS collects the data
+                    print "snap %s" %snap
+                     
+            
+            #For each volume of the instance, create a tag name = volumeID to assign to the snaphot taken of the volume      
+            #Assign to variables the SnaphotId and the VolumeId
+            snapshotId= snap['SnapshotId']
+            volumeId= snap['VolumeId']
+            print snapshotId
+            print volumeId
+            to_tag1[retention_days].append(snap['SnapshotId'])
+            #To assign a tag to a snapshot, you need a type list as parameter, therefore we use to_tags1 list to which append
+            #the snapshotId. Using the SnaphotId directly will generate an error in AWS. for each iteration, we append the snapshotId to the list
+            # and then we create the tag. Done that, clear the list to_tag1.
+            for retention_days in to_tag1.keys():
+                #Create the tag Name to the snaphot of each volume.
+                ec.create_tags(
+                Resources=to_tag1[retention_days],
+                Tags=[
+                {'Key': 'Name', 'Value': volumeId },
+            #{'Key': 'Name', 'Value': snap['VolumeId'] },
+                ]
+                ) 
+            to_tag1.clear()    
+            
+            #This section of the code is related to the evaluation of the DeletOn tag and the assignment of the tag to the snaphot.
+            to_tag2[retention_days].append(snap['SnapshotId'])
+            
+            print "Retaining snapshot %s of volume %s from instance %s for %d days" % (
+                snap['SnapshotId'],
+                vol_id,
+                instance['InstanceId'],
+                retention_days,
+            )
+            
+            for retention_days in to_tag2.keys():
+                delete_date = datetime.date.today() + datetime.timedelta(days=retention_days)
+               
+                #snap = vol_id + str('_')   
+                #Commented as old configuration
+                snap = snap['VolumeId'] + str('_')       
+                #snap = snap['Description'] + str('_')   #This give the instance name to the ebs snapshot
+                # Here to get current date 
+                snapshot = snap + str(datetime.date.today())   
+                # to mention the current date format
+                delete_fmt = delete_date.strftime('%Y-%m-%d')
+                print "Will delete %d snapshots on %s" % (len(to_tag2[retention_days]), delete_fmt)
+                # below code is create the name and current date as instance name
+                #Creates the DeleteOn tag in the snaphot
+                ec.create_tags(
+                Resources=to_tag2[retention_days],
+                Tags=[
+                {'Key': 'DeleteOn', 'Value': delete_fmt},
+                #{'Key': 'Name', 'Value': snapshot },
+                ]
+                ) 
+        to_tag1.clear()
+        to_tag2.clear()
